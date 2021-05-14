@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+using System;
 
 public class BubbleSortNewManager : MonoBehaviour
 {
@@ -9,7 +10,13 @@ public class BubbleSortNewManager : MonoBehaviour
     public Vector3 offset = new Vector3(0, 1.5f, 0);
     public List<int> cubeNumList;
     public List<BubbleSortNewItem> cubes;
-    IEnumerator Start()
+    private Coroutine sortCoHandle;
+
+    void Start()
+    {
+        StartSort();
+    }
+    IEnumerator SortCo()
     {
         // 토대 박스는 안보이게 하자
         cube.gameObject.SetActive(false);
@@ -35,9 +42,8 @@ public class BubbleSortNewManager : MonoBehaviour
                 // 박스 정보 가져오자
                 var cube1 = cubes[j];
                 var cube2 = cubes[j + 1];
-                cube1.ChangeColor(Color.yellow);
-                cube2.ChangeColor(Color.yellow);
-                yield return new WaitForSeconds(0.5f);
+                yield return StartCoroutine(ChangeColorCo(cube1, cube2, Color.yellow));
+
                 if (cubeNumList[j] > cubeNumList[j + 1])
                 {
                     // 리스트 숫자 바꾸기
@@ -49,13 +55,9 @@ public class BubbleSortNewManager : MonoBehaviour
                 }
                 else
                 {
-                    cube1.ChangeColor(Color.green);
-                    cube2.ChangeColor(Color.green);
-                    yield return new WaitForSeconds(0.5f);
+                    yield return StartCoroutine(ChangeColorCo(cube1, cube2, Color.green));
                 }
-                cube1.ChangeColor(Color.white);
-                cube2.ChangeColor(Color.white);
-                yield return new WaitForSeconds(0.5f);
+                yield return StartCoroutine(ChangeColorCo(cube1, cube2, Color.white));
             }
             // 고정된 블럭 회색으로 표시
             cubes[cubeNumList.Count - 1 - i].ChangeColor(Color.gray);
@@ -82,6 +84,51 @@ public class BubbleSortNewManager : MonoBehaviour
             cube2.transform.DOMove(cube1Pos, 0.5f).SetEase(Ease.InBounce);
             cube1.transform.DOMove(cube2Pos, 0.5f).SetEase(Ease.InBounce);
         }
+
+        IEnumerator ChangeColorCo(
+            BubbleSortNewItem cube1, BubbleSortNewItem cube2, Color color)
+        {
+            cube1.ChangeColor(color);
+            cube2.ChangeColor(color);
+            yield return new WaitForSeconds(0.5f);
+        }
+    }
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            StartSort();
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            // 랜덤하게 숫자 할당
+            // 배열에 있는 숫자를 랜덤하게 변경
+            // 1) [완료] 배열에 있는 갯수와 같은 갯수로 만들자
+            // 2) 숫자범위 :  -배열.카운트 ~ 배열.카운트
+            for (int i = 0; i < cubeNumList.Count; i++)
+            {
+                int randInt =
+                    UnityEngine.Random.Range(-cubeNumList.Count, cubeNumList.Count);
+                cubeNumList[i] = randInt;
+            }
+        }
     }
 
+    private void StartSort()
+    {
+        //기존에 있던거를 멈춰야한다
+        //구현안하고 다시한다면 ?
+        //기존에 있던 박스와 겹쳐진다
+        // 기존 코루틴 정지
+        if (sortCoHandle != null)
+            StopCoroutine(sortCoHandle);
+
+        // 기존박스를 부셔야함
+        cubes.ForEach(x => Destroy(x.gameObject));
+        // 배열에는 남아있으므로 배열도 비워줘야함
+        cubes.Clear();
+
+        // 다시 정렬 시작
+        sortCoHandle = StartCoroutine(SortCo());
+    }
 }
